@@ -13,6 +13,6 @@ pub fn main(init: std.process.Init) !void {
 
         const command = try stdin.interface.takeDelimiter('\n');
 
-        try stdout.interface.print("asds{s}: command not found\n", .{command.?});
+        try stdout.interface.print("{s}: command not found\n", .{command.?});
     }
 }
