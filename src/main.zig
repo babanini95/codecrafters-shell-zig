@@ -40,20 +40,5 @@ pub fn main(init: std.process.Init) !void {
             },
             .invalid => try stdout.interface.print("{s}: command not found\n", .{command_str}),
         }
-
-        // if (std.mem.eql(u8, command, "exit")) {
-        //     break;
-        // } else if (std.mem.eql(u8, command, "echo")) {
-        //     try stdout.interface.print("{s}\n", .{args});
-        // } else if (std.mem.eql(u8, command, "type")) {
-        //     const com = std.meta.stringToEnum(Commands, args) orelse {
-        //         try stdout.interface.print("{s}: not found\n", .{args});
-        //         continue;
-        //     };
-
-        //     try stdout.interface.print("{s} is a shell builtin\n", .{std.enums.tagName(Commands, com).?});
-        // } else {
-        //     try stdout.interface.print("{s}: command not found\n", .{command});
-        // }
     }
 }
