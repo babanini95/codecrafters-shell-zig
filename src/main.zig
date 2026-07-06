@@ -23,7 +23,8 @@ pub fn main(init: std.process.Init) !void {
 
         const line = try stdin.interface.takeDelimiter('\n');
         var t_command = std.mem.tokenizeAny(u8, std.mem.trim(u8, line.?, "\r"), " \t");
-        const command = Commands.fromString(t_command.next().?) orelse .invalid;
+        const command_str = t_command.next().?;
+        const command = Commands.fromString(command_str) orelse .invalid;
         const args = t_command.rest();
 
         switch (command) {
@@ -32,12 +33,12 @@ pub fn main(init: std.process.Init) !void {
             .type => {
                 const arg = Commands.fromString(args) orelse .invalid;
                 if (arg == .invalid) {
-                    try stdout.interface.print("{s}: not found", .{args});
+                    try stdout.interface.print("{s}: not found\n", .{args});
                 } else {
-                    try stdout.interface.print("{s} is a shell builtin", .{args});
+                    try stdout.interface.print("{s} is a shell builtin\n", .{args});
                 }
             },
-            .invalid => try stdout.interface.print("{s}: command not found\n", .{command}),
+            .invalid => try stdout.interface.print("{s}: command not found\n", .{command_str}),
         }
 
         // if (std.mem.eql(u8, command, "exit")) {
