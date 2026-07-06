@@ -20,7 +20,7 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, command, "exit")) {
             break;
         } else if (std.mem.eql(u8, command, "echo")) {
-            try stdout.interface.print("{s}\n", .{command[5..]});
+            try stdout.interface.print("{s}\n", .{args});
         } else if (std.mem.eql(u8, command, "type")) {
             const com = std.meta.stringToEnum(Commands, args) orelse {
                 try stdout.interface.print("{s}: not found\n", .{args});
