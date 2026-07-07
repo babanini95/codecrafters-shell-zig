@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 const Commands = enum {
     exit,
@@ -15,6 +16,9 @@ pub fn main(init: std.process.Init) !void {
     var stdout = std.Io.File.stdout().writer(init.io, &.{});
     var stdin_buffer: [4096]u8 = undefined;
     var stdin = std.Io.File.stdin().readerStreaming(init.io, &stdin_buffer);
+
+    const path = init.environ_map.get("PATH").?;
+    const path_sep: u8 = if (builtin.os.tag == .windows) ';' else ':';
 
     try stdout.interface.print("", .{});
 
@@ -33,7 +37,21 @@ pub fn main(init: std.process.Init) !void {
             .type => {
                 const arg = Commands.fromString(args) orelse .invalid;
                 if (arg == .invalid) {
-                    try stdout.interface.print("{s}: not found\n", .{args});
+                    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+                    defer arena.deinit();
+                    const allocator = arena.allocator();
+
+                    var filepath: ?[]u8 = null;
+                    var path_iterator = std.mem.splitScalar(u8, path, path_sep);
+
+                    while (path_iterator.next()) |directory| {
+                        const full_path = try std.fs.path.join(allocator, &.{ directory, command_str });
+                        std.Io.Dir.cwd().access(init.io, full_path, .{}) catch continue;
+
+                        filepath = try allocator.dupe(u8, full_path);
+                    }
+
+                    if (filepath == null) try stdout.interface.print("{s}: not found\n", .{args});
                 } else {
                     try stdout.interface.print("{s} is a shell builtin\n", .{args});
                 }
