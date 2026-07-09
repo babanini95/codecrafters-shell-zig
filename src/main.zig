@@ -44,14 +44,29 @@ pub fn main(init: std.process.Init) !void {
                     var filepath: ?[]u8 = null;
                     var path_iterator = std.mem.splitScalar(u8, path, path_sep);
 
-                    while (path_iterator.next()) |directory| {
-                        const full_path = try std.fs.path.join(allocator, &.{ directory, command_str });
-                        std.Io.Dir.cwd().access(init.io, full_path, .{}) catch continue;
+                    const extensions: []const []const u8 =
+                        if (builtin.os.tag == .windows)
+                            &.{ "", ".exe", ".cmd", ".bat", ".com" }
+                        else
+                            &.{""};
 
-                        filepath = try allocator.dupe(u8, full_path);
+                    search: while (path_iterator.next()) |directory| {
+                        for (extensions) |ext| {
+                            const candidate = try std.mem.concat(allocator, u8, &.{ args, ext });
+                            const full_path = try std.fs.path.join(allocator, &.{ directory, candidate });
+
+                            std.Io.Dir.cwd().access(init.io, full_path, .{}) catch continue;
+
+                            filepath = try allocator.dupe(u8, full_path);
+                            break :search;
+                        }
                     }
 
-                    if (filepath == null) try stdout.interface.print("{s}: not found\n", .{args});
+                    if (filepath) |fp| {
+                        try stdout.interface.print("{s} is {s}\n", .{ args, fp });
+                    } else {
+                        try stdout.interface.print("{s}: not found\n", .{args});
+                    }
                 } else {
                     try stdout.interface.print("{s} is a shell builtin\n", .{args});
                 }
