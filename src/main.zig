@@ -56,11 +56,12 @@ pub fn main(init: std.process.Init) !void {
                             const candidate = std.mem.concat(allocator, u8, &.{ args, ext }) catch continue;
                             const full_path = std.fs.path.join(allocator, &.{ directory, candidate }) catch continue;
 
-                            const file_stat = std.Io.Dir.cwd().statFile(init.io, full_path, .{}) catch continue;
-                            try stdout.interface.print("{any}\n", .{file_stat.permissions});
-                            // if (!can_execute) continue;
-                            // std.Io.Dir.cwd().access(init.io, full_path, .{}) catch continue;
-
+                            const dir = std.Io.Dir.cwd().openDir(init.io, full_path, .{}) catch continue;
+                            if (is_windows) {
+                                std.Io.Dir.cwd().access(init.io, full_path, .{}) catch continue;
+                            } else {
+                                dir.access(init.io, full_path, .{ .execute = true }) catch continue;
+                            }
                             filepath = try allocator.dupe(u8, full_path);
                             break :search;
                         }
