@@ -44,10 +44,7 @@ pub fn handleInvalid(
     const result = try path_resolver.executeProgram(allocator, cmd, args, io, path);
 
     if (result) |res| {
-        std.debug.print("before prompt\n", .{});
         try stdout.interface.print("{s}\n", .{res.stdout});
-        std.debug.print("after prompt\n", .{});
-        try stdout.interface.flush();
     } else {
         try stdout.interface.print("{s}: command not found\n", .{cmd});
     }
