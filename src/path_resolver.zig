@@ -52,6 +52,7 @@ pub fn executeProgram(
 
         var arg_it = std.mem.splitScalar(u8, args, ' ');
         while (arg_it.next()) |arg| {
+            if (arg.len == 0) continue;
             try argv.append(allocator, arg);
         }
 
