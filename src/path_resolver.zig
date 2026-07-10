@@ -44,11 +44,11 @@ pub fn executeProgram(
 ) !?std.process.RunResult {
     const program_path = try findExecutable(allocator, io, path_env, command);
 
-    if (program_path) |_| {
+    if (program_path) |path| {
         var argv = std.ArrayList([]const u8).empty;
         defer argv.deinit(allocator);
 
-        try argv.append(allocator, command);
+        try argv.append(allocator, path);
 
         var arg_it = std.mem.splitScalar(u8, args, ' ');
         while (arg_it.next()) |arg| {
