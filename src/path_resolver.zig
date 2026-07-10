@@ -48,7 +48,7 @@ pub fn executeProgram(
         var argv = std.ArrayList([]const u8).empty;
         defer argv.deinit(allocator);
 
-        try argv.append(allocator, path);
+        try argv.append(allocator, command);
 
         var arg_it = std.mem.splitScalar(u8, args, ' ');
         while (arg_it.next()) |arg| {
