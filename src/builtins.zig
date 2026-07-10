@@ -45,6 +45,9 @@ pub fn handleInvalid(
 
     if (result) |res| {
         try stdout.interface.print("{s}\n", .{res.stdout});
+        std.debug.print("before prompt\n", .{});
+        try stdout.interface.print("$ ", .{});
+        std.debug.print("after prompt\n", .{});
         try stdout.interface.flush();
     } else {
         try stdout.interface.print("{s}: command not found\n", .{cmd});
