@@ -20,7 +20,7 @@ pub fn main(init: std.process.Init) !void {
         const line = try stdin.interface.takeDelimiter('\n');
         const trimmed = std.mem.trim(u8, line.?, "\r");
         var t_command = std.mem.tokenizeAny(u8, trimmed, " \t");
-        const command_str = t_command.next().?;
+        const command_str = t_command.next() orelse "";
         const command = Commands.fromString(command_str) orelse .invalid;
         const args = t_command.rest();
 
