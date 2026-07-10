@@ -44,7 +44,7 @@ pub fn executeProgram(
 ) !?std.process.RunResult {
     const program_path = try findExecutable(allocator, io, path_env, command);
 
-    if (program_path) |path| {
+    if (program_path) |_| {
         var argv = std.ArrayList([]const u8).empty;
         defer argv.deinit(allocator);
 
