@@ -41,7 +41,8 @@ pub fn executeProgram(
     args: []const u8,
     io: anytype,
     path_env: []const u8,
-) !?std.process.RunResult {
+    stdout: anytype,
+) !void {
     const program_path = try findExecutable(allocator, io, path_env, command);
 
     if (program_path) |_| {
@@ -56,8 +57,12 @@ pub fn executeProgram(
             try argv.append(allocator, arg);
         }
 
-        return std.process.run(allocator, io, .{ .argv = argv.items }) catch return null;
+        // return std.process.run(allocator, io, .{ .argv = argv.items }) catch return null;
+        var child_proc = try std.process.spawn(io, .{ .argv = argv.items });
+        _ = try child_proc.wait(io);
+    } else {
+        try stdout.interface.print("{s}: command not found\n", .{command});
     }
 
-    return null;
+    // return null;
 }

@@ -41,11 +41,11 @@ pub fn handleInvalid(
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    const result = try path_resolver.executeProgram(allocator, cmd, args, io, path);
+    try path_resolver.executeProgram(allocator, cmd, args, io, path, stdout);
 
-    if (result) |res| {
-        try stdout.interface.print("{s}\n", .{res.stdout});
-    } else {
-        try stdout.interface.print("{s}: command not found\n", .{cmd});
-    }
+    // if (result) |res| {
+    //     try stdout.interface.print("{s}\n", .{res.stdout});
+    // } else {
+    //     try stdout.interface.print("{s}: command not found\n", .{cmd});
+    // }
 }

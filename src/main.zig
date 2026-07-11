@@ -32,19 +32,19 @@ pub fn main(init: std.process.Init) !void {
             .echo => try builtins.handleEcho(&stdout, args),
             .type => try builtins.handleType(&stdout, init.io, path, args),
             .invalid => {
-                // try builtins.handleInvalid(command_str, args, path, init.io, &stdout);
-                var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-                defer arena.deinit();
-                const allocator = arena.allocator();
+                try builtins.handleInvalid(command_str, args, path, init.io, &stdout);
+                // var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+                // defer arena.deinit();
+                // const allocator = arena.allocator();
 
-                const result = try path_resolver.executeProgram(allocator, command_str, args, init.io, path);
+                // const result = try path_resolver.executeProgram(allocator, command_str, args, init.io, path);
 
-                if (result) |res| {
-                    try stdout.interface.print("{s}\n", .{res.stdout});
-                    continue;
-                } else {
-                    try stdout.interface.print("{s}: command not found\n", .{command_str});
-                }
+                // if (result) |res| {
+                //     try stdout.interface.print("{s}\n", .{res.stdout});
+                //     continue;
+                // } else {
+                //     try stdout.interface.print("{s}: command not found\n", .{command_str});
+                // }
             },
         }
     }
