@@ -42,10 +42,18 @@ pub fn handleInvalid(
     const allocator = arena.allocator();
 
     try path_resolver.executeProgram(allocator, cmd, args, io, path, stdout);
+}
 
-    // if (result) |res| {
-    //     try stdout.interface.print("{s}\n", .{res.stdout});
-    // } else {
-    //     try stdout.interface.print("{s}: command not found\n", .{cmd});
-    // }
+pub fn handlePwd(
+    io: anytype,
+    stdout: anytype,
+) !void {
+    const cwd = std.Io.Dir.cwd();
+    var buffer: [std.fs.max_path_bytes]u8 = undefined;
+
+    if (cwd.realPathFile(io, ".", &buffer)) |len| {
+        try stdout.interface.print("{s}\n", .{buffer[0..len]});
+    } else |err| {
+        try stdout.interface.print("Error: {any}\n", .{err});
+    }
 }
