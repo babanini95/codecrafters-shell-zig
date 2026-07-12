@@ -68,24 +68,21 @@ pub fn handleCd(
     env: anytype,
 ) !void {
     var dir: std.Io.Dir = undefined;
+    var dir_path: []const u8 = undefined;
 
     if (std.mem.eql(u8, path, "~")) {
-        const home_path: []const u8 = env.get("HOME") orelse env.get("USERPROFILE") orelse "";
-        dir = std.Io.Dir.openDirAbsolute(io, home_path, .{}) catch {
-            try stdout.interface.print("cd: {s}: No such file or directory\n", .{home_path});
-            return;
-        };
-
-        return;
+        dir_path = env.get("HOME") orelse env.get("USERPROFILE") orelse "";
+    } else {
+        dir_path = path;
     }
 
-    dir = std.Io.Dir.cwd().openDir(io, path, .{}) catch
-        std.Io.Dir.openDirAbsolute(io, path, .{}) catch {
-        try stdout.interface.print("cd: {s}: No such file or directory\n", .{path});
+    dir = std.Io.Dir.cwd().openDir(io, dir_path, .{}) catch
+        std.Io.Dir.openDirAbsolute(io, dir_path, .{}) catch {
+        try stdout.interface.print("cd: {s}: No such file or directory\n", .{dir_path});
         return;
     };
     defer dir.close(io);
 
     std.process.setCurrentDir(io, dir) catch
-        try stdout.interface.print("cd: {s}: No such file or directory\n", .{path});
+        try stdout.interface.print("cd: {s}: No such file or directory\n", .{dir_path});
 }
