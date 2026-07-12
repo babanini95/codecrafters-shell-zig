@@ -66,7 +66,8 @@ pub fn handleCd(
     path: []const u8,
     stdout: anytype,
 ) !void {
-    var dir = std.Io.Dir.openDirAbsolute(io, path, .{}) catch {
+    var dir = std.Io.Dir.cwd().openDir(io, path, .{}) catch
+        std.Io.Dir.openDirAbsolute(io, path, .{}) catch {
         try stdout.interface.print("cd: {s}: No such file or directory\n", .{path});
         return;
     };
