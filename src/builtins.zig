@@ -69,5 +69,6 @@ pub fn handleCd(
     var dir = try std.Io.Dir.openDirAbsolute(io, path, .{});
     defer dir.close(io);
 
-    std.process.setCurrentDir(io, dir) catch |err| try stdout.interface.print("Error: {any}\n", .{err});
+    std.process.setCurrentDir(io, dir) catch
+        try stdout.interface.print("cd: {s}: No such file or directory\n", path);
 }
