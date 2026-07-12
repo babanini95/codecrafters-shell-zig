@@ -32,6 +32,7 @@ pub fn main(init: std.process.Init) !void {
             .echo => try builtins.handleEcho(&stdout, args),
             .type => try builtins.handleType(&stdout, init.io, path, args),
             .pwd => try builtins.handlePwd(init.io, &stdout),
+            .cd => try builtins.handleCd(init.io, args, &stdout),
             .invalid => try builtins.handleInvalid(command_str, args, path, init.io, &stdout),
         }
     }

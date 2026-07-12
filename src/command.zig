@@ -4,6 +4,7 @@ pub const Commands = enum {
     echo,
     type,
     pwd,
+    cd,
     invalid,
 
     pub fn fromString(str: []const u8) ?Commands {

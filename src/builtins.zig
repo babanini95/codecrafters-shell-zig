@@ -1,6 +1,9 @@
 const std = @import("std");
 const Commands = @import("command.zig").Commands;
 const path_resolver = @import("path_resolver.zig");
+const zig_builtin = @import("builtin");
+
+const os = zig_builtin.os.tag;
 
 pub fn handleType(
     stdout: anytype,
@@ -56,4 +59,15 @@ pub fn handlePwd(
     } else |err| {
         try stdout.interface.print("Error: {any}\n", .{err});
     }
+}
+
+pub fn handleCd(
+    io: anytype,
+    path: []const u8,
+    stdout: anytype,
+) !void {
+    var dir = try std.Io.Dir.openDirAbsolute(io, path, .{});
+    defer dir.close(io);
+
+    std.process.setCurrentDir(io, dir) catch |err| try stdout.interface.print("Error: {any}\n", .{err});
 }
