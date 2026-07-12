@@ -70,5 +70,5 @@ pub fn handleCd(
     defer dir.close(io);
 
     std.process.setCurrentDir(io, dir) catch
-        try stdout.interface.print("cd: {s}: No such file or directory\n", path);
+        try stdout.interface.print("cd: {s}: No such file or directory\n", .{path});
 }
