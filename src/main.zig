@@ -10,7 +10,7 @@ pub fn main(init: std.process.Init) !void {
     var stdin_buffer: [4096]u8 = undefined;
     var stdin = std.Io.File.stdin().readerStreaming(init.io, &stdin_buffer);
 
-    const path = init.environ_map.get("PATH") orelse "";
+    const env = init.environ_map;
 
     try stdout.interface.print("", .{});
 
@@ -30,10 +30,10 @@ pub fn main(init: std.process.Init) !void {
         switch (command) {
             .exit => break,
             .echo => try builtins.handleEcho(&stdout, args),
-            .type => try builtins.handleType(&stdout, init.io, path, args),
+            .type => try builtins.handleType(&stdout, init.io, env.get("PATH") orelse "", args),
             .pwd => try builtins.handlePwd(init.io, &stdout),
-            .cd => try builtins.handleCd(init.io, args, &stdout),
-            .invalid => try builtins.handleInvalid(command_str, args, path, init.io, &stdout),
+            .cd => try builtins.handleCd(init.io, args, &stdout, env),
+            .invalid => try builtins.handleInvalid(command_str, args, env.get("PATH") orelse "", init.io, &stdout),
         }
     }
 }
