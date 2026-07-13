@@ -9,12 +9,14 @@ pub fn handleType(
     stdout: anytype,
     io: anytype,
     path_env: []const u8,
-    arg: []const u8,
+    arg: [][]const u8,
 ) !void {
-    const cmd_arg = Commands.fromString(arg) orelse .invalid;
+    if (arg.len != 1) return error.InvalidArgument;
+
+    const cmd_arg = Commands.fromString(arg[0]) orelse .invalid;
 
     if (cmd_arg != .invalid) {
-        try stdout.interface.print("{s} is a shell builtin\n", .{arg});
+        try stdout.interface.print("{s} is a shell builtin\n", .{arg[0]});
         return;
     }
 
@@ -22,28 +24,26 @@ pub fn handleType(
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    if (try path_resolver.findExecutable(allocator, io, path_env, arg)) |filepath| {
-        try stdout.interface.print("{s} is {s}\n", .{ arg, filepath });
+    if (try path_resolver.findExecutable(allocator, io, path_env, arg[0])) |filepath| {
+        try stdout.interface.print("{s} is {s}\n", .{ arg[0], filepath });
     } else {
-        try stdout.interface.print("{s}: not found\n", .{arg});
+        try stdout.interface.print("{s}: not found\n", .{arg[0]});
     }
 }
 
-pub fn handleEcho(stdout: anytype, args: []const u8) !void {
-    try stdout.interface.print("{s}\n", .{args});
+pub fn handleEcho(stdout: anytype, args: [][]const u8, allocator: std.mem.Allocator) !void {
+    const str = try std.mem.concat(allocator, u8, args);
+    try stdout.interface.print("{s}\n", .{str});
 }
 
 pub fn handleInvalid(
     cmd: []const u8,
-    args: []const u8,
+    args: [][]const u8,
     path: []const u8,
     io: anytype,
     stdout: anytype,
+    allocator: std.mem.Allocator,
 ) !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
     try path_resolver.executeProgram(allocator, cmd, args, io, path, stdout);
 }
 
@@ -63,21 +63,28 @@ pub fn handlePwd(
 
 pub fn handleCd(
     io: anytype,
-    path: []const u8,
+    args: [][]const u8,
     stdout: anytype,
     env: anytype,
 ) !void {
-    var dir: std.Io.Dir = undefined;
-    var dir_path: []const u8 = undefined;
+    if (args.len != 1) return error.InvalidArgument;
 
-    if (std.mem.eql(u8, path, "~")) {
-        dir_path = env.get("HOME") orelse env.get("USERPROFILE") orelse "";
-    } else {
-        dir_path = path;
-    }
+    const path = args[0];
 
-    dir = std.Io.Dir.cwd().openDir(io, dir_path, .{}) catch
-        std.Io.Dir.openDirAbsolute(io, dir_path, .{}) catch {
+    const dir_path: []const u8 = if (std.mem.eql(u8, path, "~"))
+        env.get("HOME") orelse env.get("USERPROFILE") orelse {
+            try stdout.interface.print("cd: HOME not set\n", .{});
+            return;
+        }
+    else
+        path;
+
+    const open_result = if (std.fs.path.isAbsolute(dir_path))
+        std.Io.Dir.openDirAbsolute(io, dir_path, .{})
+    else
+        std.Io.Dir.cwd().openDir(io, dir_path, .{});
+
+    var dir = open_result catch {
         try stdout.interface.print("cd: {s}: No such file or directory\n", .{dir_path});
         return;
     };

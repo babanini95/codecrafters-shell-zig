@@ -38,7 +38,7 @@ pub fn findExecutable(
 pub fn executeProgram(
     allocator: std.mem.Allocator,
     command: []const u8,
-    args: []const u8,
+    args: [][]const u8,
     io: anytype,
     path_env: []const u8,
     stdout: anytype,
@@ -50,15 +50,12 @@ pub fn executeProgram(
         defer argv.deinit(allocator);
 
         try argv.append(allocator, command);
+        try argv.appendSlice(allocator, args);
 
-        var arg_it = std.mem.splitScalar(u8, args, ' ');
-        while (arg_it.next()) |arg| {
-            if (arg.len == 0) continue;
-            try argv.append(allocator, arg);
-        }
-
-        // return std.process.run(allocator, io, .{ .argv = argv.items }) catch return null;
-        var child_proc = try std.process.spawn(io, .{ .argv = argv.items });
+        var child_proc = try std.process.spawn(
+            io,
+            .{ .argv = argv.items },
+        );
         _ = try child_proc.wait(io);
     } else {
         try stdout.interface.print("{s}: command not found\n", .{command});
