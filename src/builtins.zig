@@ -32,7 +32,7 @@ pub fn handleType(
 }
 
 pub fn handleEcho(stdout: anytype, args: [][]const u8, allocator: std.mem.Allocator) !void {
-    const str = try std.mem.concat(allocator, u8, args);
+    const str = try std.mem.join(allocator, " ", args);
     try stdout.interface.print("{s}\n", .{str});
 }
 
