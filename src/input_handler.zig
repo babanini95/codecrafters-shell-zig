@@ -68,12 +68,12 @@ pub fn tokenize(
                         try current.append(allocator, c);
                     },
                 }
-                state = .normal;
+                state = .double_quoted;
             },
         }
     }
 
-    if (state == .single_quoted)
+    if (state == .single_quoted or state == .double_quoted or state == .double_quoted_escape)
         return error.UnlcosedQuote;
 
     if (in_token) try tokens.append(allocator, try current.toOwnedSlice(allocator));
