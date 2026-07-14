@@ -5,6 +5,7 @@ const State = enum {
     single_quoted,
     double_quoted,
     escaped,
+    double_quoted_escape,
 };
 
 pub fn tokenize(
@@ -50,12 +51,23 @@ pub fn tokenize(
             .double_quoted => {
                 switch (c) {
                     '"' => state = .normal,
+                    '\\' => state = .double_quoted_escape,
                     else => try current.append(allocator, c),
                 }
             },
             .escaped => {
                 try current.append(allocator, c);
                 in_token = true;
+                state = .normal;
+            },
+            .double_quoted_escape => {
+                switch (c) {
+                    '"', '\\' => try current.append(allocator, c),
+                    else => {
+                        try current.append(allocator, '\\');
+                        try current.append(allocator, c);
+                    },
+                }
                 state = .normal;
             },
         }
