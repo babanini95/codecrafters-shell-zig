@@ -24,7 +24,12 @@ pub fn handleType(
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    if (try path_resolver.findExecutable(allocator, io, path_env, arg[0])) |filepath| {
+    if (try path_resolver.findExecutable(
+        allocator,
+        io,
+        path_env,
+        arg[0],
+    )) |filepath| {
         try stdout.interface.print("{s} is {s}\n", .{ arg[0], filepath });
     } else {
         try stdout.interface.print("{s}: not found\n", .{arg[0]});

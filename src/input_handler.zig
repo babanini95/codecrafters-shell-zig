@@ -1,6 +1,10 @@
 const std = @import("std");
 
-const State = enum { normal, single_quoted };
+const State = enum {
+    normal,
+    single_quoted,
+    double_quoted,
+};
 
 pub fn tokenize(
     allocator: std.mem.Allocator,
@@ -17,6 +21,10 @@ pub fn tokenize(
                 switch (c) {
                     '\'' => {
                         state = .single_quoted;
+                        in_token = true;
+                    },
+                    '"' => {
+                        state = .double_quoted;
                         in_token = true;
                     },
                     ' ', '\t' => {
@@ -36,6 +44,12 @@ pub fn tokenize(
                     state = .normal
                 else
                     try current.append(allocator, c);
+            },
+            .double_quoted => {
+                switch (c) {
+                    '"' => state = .normal,
+                    else => try current.append(allocator, c),
+                }
             },
         }
     }
