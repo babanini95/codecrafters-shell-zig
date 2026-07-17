@@ -58,7 +58,7 @@ pub fn executeProgram(
         );
         _ = try child_proc.wait(io);
     } else {
-        try stdout.interface.print("{s}: command not found\n", .{command});
+        try stdout.print("{s}: command not found\n", .{command});
     }
 
     // return null;
