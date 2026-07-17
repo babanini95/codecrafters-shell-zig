@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const builtins = @import("builtins.zig");
 const path_resolver = @import("path_resolver.zig");
 const input_handler = @import("input_handler.zig");
+const parser = @import("parser.zig");
 
 const Commands = @import("command.zig").Commands;
 
@@ -29,16 +30,47 @@ pub fn main(init: std.process.Init) !void {
 
         const allocator = arena.allocator();
         const t_command = try input_handler.tokenize(allocator, trimmed);
-        const command_str = t_command[0];
+        const parsed = parser.parse(allocator, t_command) catch |err| {
+            try stdout.interface.print("parse error: {s}\n", .{@errorName(err)});
+            continue;
+        };
+
+        if (parsed.argv.len == 0) continue;
+
+        const command_str = parsed.argv[0];
         const command = Commands.fromString(command_str) orelse .invalid;
-        const args = t_command[1..];
+        const args = parsed.argv[1..];
+
+        var file_buffer: [4096]u8 = undefined;
+        var file_writer_storage: ?std.Io.File.Writer = null;
+        var out: *std.Io.Writer = &stdout.interface; // default target
+
+        // find if any redirect targets fd 1 (stdout)
+        var stdout_redirect: ?parser.Redirect = null;
+        for (parsed.redirects) |r| {
+            if (r.fd == 1) stdout_redirect = r; // last one wins if multiple
+        }
+
+        if (stdout_redirect) |r| {
+            const file = try std.Io.File.cwd().createFile(init.io, r.target, .{
+                .truncate = r.kind == .out, // .out overwrites, .append doesn't
+            });
+
+            if (r.kind == .append) {
+                try file.seekFromEnd(init.io, 0); // move to end before writing
+            }
+
+            file_writer_storage = file.writer(init.io, &file_buffer);
+            out = &file_writer_storage.?.interface;
+        }
+        defer if (file_writer_storage) |*fw| fw.file.close(init.io);
 
         switch (command) {
             .exit => break,
-            .echo => try builtins.handleEcho(&stdout, args, allocator),
-            .type => try builtins.handleType(&stdout, init.io, env.get("PATH") orelse "", args),
-            .pwd => try builtins.handlePwd(init.io, &stdout),
-            .cd => try builtins.handleCd(init.io, args, &stdout, env),
+            .echo => try builtins.handleEcho(out, args, allocator),
+            .type => try builtins.handleType(out, init.io, env.get("PATH") orelse "", args),
+            .pwd => try builtins.handlePwd(init.io, out),
+            .cd => try builtins.handleCd(init.io, args, out, env),
             .invalid => try builtins.handleInvalid(
                 command_str,
                 args,

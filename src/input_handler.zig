@@ -32,14 +32,12 @@ pub fn tokenize(allocator: std.mem.Allocator, input: []const u8) ![]Token {
                     state = .double_quoted;
                 } else if (std.ascii.isWhitespace(c)) {
                     try flushWord(&tokens, allocator, &current);
-                } else if (std.ascii.isDigit(c)) {
+                } else if (std.ascii.isDigit(c) and current.items.len == 0) {
                     var j = i;
                     while (j < input.len and std.ascii.isDigit(input[j]))
                         j += 1;
 
                     if (j < input.len and input[j] == '>') {
-                        try flushWord(&tokens, allocator, &current);
-
                         const fd = try std.fmt.parseInt(u8, input[i..j], 10);
 
                         if (j + 1 < input.len and input[j + 1] == '>') {
@@ -220,6 +218,16 @@ test "word, redirect, and target word together" {
     try testing.expectEqualStrings("echo", tokens[0].word);
     try testing.expectEqual(Token{ .redirect_out = 2 }, tokens[1]);
     try testing.expectEqualStrings("out.txt", tokens[2].word);
+}
+
+test "digits glued to a word are not mistaken for an fd" {
+    const tokens = try tokenize(testing.allocator, "abc2>file");
+    defer freeTokens(testing.allocator, tokens);
+
+    try testing.expectEqual(@as(usize, 3), tokens.len);
+    try testing.expectEqualStrings("abc2", tokens[0].word);
+    try testing.expectEqual(Token{ .redirect_out = 1 }, tokens[1]);
+    try testing.expectEqualStrings("file", tokens[2].word);
 }
 
 test "unclosed single quote is an error" {
