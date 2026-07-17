@@ -7,6 +7,7 @@ const os = zig_builtin.os.tag;
 
 pub fn handleType(
     stdout: anytype,
+    stderr: anytype,
     io: anytype,
     path_env: []const u8,
     arg: [][]const u8,
@@ -32,7 +33,7 @@ pub fn handleType(
     )) |filepath| {
         try stdout.print("{s} is {s}\n", .{ arg[0], filepath });
     } else {
-        try stdout.print("{s}: not found\n", .{arg[0]});
+        try stderr.print("{s}: not found\n", .{arg[0]});
     }
 }
 
@@ -46,9 +47,10 @@ pub fn handleInvalid(
     args: [][]const u8,
     path: []const u8,
     io: anytype,
-    stdout: anytype,
+    stderr: anytype,
     allocator: std.mem.Allocator,
     redirect_file: ?std.Io.File,
+    redirect_err_file: ?std.Io.File,
 ) !void {
     try path_resolver.executeProgram(
         allocator,
@@ -56,14 +58,16 @@ pub fn handleInvalid(
         args,
         io,
         path,
-        stdout,
+        stderr,
         redirect_file,
+        redirect_err_file,
     );
 }
 
 pub fn handlePwd(
     io: anytype,
     stdout: anytype,
+    stderr: anytype,
 ) !void {
     const cwd = std.Io.Dir.cwd();
     var buffer: [std.fs.max_path_bytes]u8 = undefined;
@@ -71,14 +75,14 @@ pub fn handlePwd(
     if (cwd.realPathFile(io, ".", &buffer)) |len| {
         try stdout.print("{s}\n", .{buffer[0..len]});
     } else |err| {
-        try stdout.print("Error: {any}\n", .{err});
+        try stderr.print("Error: {any}\n", .{err});
     }
 }
 
 pub fn handleCd(
     io: anytype,
     args: [][]const u8,
-    stdout: anytype,
+    stderr: anytype,
     env: anytype,
 ) !void {
     if (args.len != 1) return error.InvalidArgument;
@@ -87,7 +91,7 @@ pub fn handleCd(
 
     const dir_path: []const u8 = if (std.mem.eql(u8, path, "~"))
         env.get("HOME") orelse env.get("USERPROFILE") orelse {
-            try stdout.print("cd: HOME not set\n", .{});
+            try stderr.print("cd: HOME not set\n", .{});
             return;
         }
     else
@@ -99,11 +103,11 @@ pub fn handleCd(
         std.Io.Dir.cwd().openDir(io, dir_path, .{});
 
     var dir = open_result catch {
-        try stdout.print("cd: {s}: No such file or directory\n", .{dir_path});
+        try stderr.print("cd: {s}: No such file or directory\n", .{dir_path});
         return;
     };
     defer dir.close(io);
 
     std.process.setCurrentDir(io, dir) catch
-        try stdout.print("cd: {s}: No such file or directory\n", .{dir_path});
+        try stderr.print("cd: {s}: No such file or directory\n", .{dir_path});
 }

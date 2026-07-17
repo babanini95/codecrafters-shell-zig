@@ -8,6 +8,7 @@ const parser = @import("parser.zig");
 const Commands = @import("command.zig").Commands;
 
 pub fn main(init: std.process.Init) !void {
+    var stderr = std.Io.File.stderr().writer(init.io, &.{});
     var stdout = std.Io.File.stdout().writer(init.io, &.{});
     var stdin_buffer: [4096]u8 = undefined;
     var stdin = std.Io.File.stdin().readerStreaming(init.io, &stdin_buffer);
@@ -45,47 +46,77 @@ pub fn main(init: std.process.Init) !void {
         var file_writer_storage: ?std.Io.File.Writer = null;
         var out: *std.Io.Writer = &stdout.interface; // default target
 
-        // find if any redirect targets fd 1 (stdout)
+        var err_file_buffer: [4069]u8 = undefined;
+        var err_file_writer_storage: ?std.Io.File.Writer = null;
+        var out_err: *std.Io.Writer = &stderr.interface;
+
         var stdout_redirect: ?parser.Redirect = null;
+        var stderr_redirect: ?parser.Redirect = null;
         for (parsed.redirects) |r| {
-            if (r.fd == 1) stdout_redirect = r; // last one wins if multiple
+            if (r.fd == 1) stdout_redirect = r;
+            if (r.fd == 2) stderr_redirect = r;
         }
 
-        var file: ?std.Io.File = null;
-
         if (stdout_redirect) |r| {
-            file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
                 .truncate = r.kind == .out,
                 .read = r.kind == .append,
             });
 
-            file_writer_storage = file.?.writer(init.io, &file_buffer);
+            file_writer_storage = file.writer(init.io, &file_buffer);
 
             if (r.kind == .append) {
-                try file_writer_storage.?.seekTo(try file.?.length(init.io));
+                try file_writer_storage.?.seekTo(try file.length(init.io));
             }
 
             out = &file_writer_storage.?.interface;
+        }
+
+        if (stderr_redirect) |r| {
+            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+                .truncate = r.kind == .out,
+                .read = r.kind == .append,
+            });
+            err_file_writer_storage = file.writer(init.io, &err_file_buffer);
+            if (r.kind == .append) {
+                try err_file_writer_storage.?.seekTo(try file.length(init.io));
+            }
+            out_err = &err_file_writer_storage.?.interface;
         }
         defer if (file_writer_storage) |*fw| {
             fw.interface.flush() catch {};
             fw.file.close(init.io);
         };
+        defer if (err_file_writer_storage) |*fw| {
+            fw.interface.flush() catch {};
+            fw.file.close(init.io);
+        };
+
+        const redirect_file = if (file_writer_storage) |*fw|
+            fw.file
+        else
+            null;
+
+        const redirect_err_file = if (err_file_writer_storage) |*fw|
+            fw.file
+        else
+            null;
 
         switch (command) {
             .exit => break,
             .echo => try builtins.handleEcho(out, args, allocator),
-            .type => try builtins.handleType(out, init.io, env.get("PATH") orelse "", args),
-            .pwd => try builtins.handlePwd(init.io, out),
-            .cd => try builtins.handleCd(init.io, args, out, env),
+            .type => try builtins.handleType(out, out_err, init.io, env.get("PATH") orelse "", args),
+            .pwd => try builtins.handlePwd(init.io, out, out_err),
+            .cd => try builtins.handleCd(init.io, args, out_err, env),
             .invalid => try builtins.handleInvalid(
                 command_str,
                 args,
                 env.get("PATH") orelse "",
                 init.io,
-                out,
+                out_err,
                 allocator,
-                file,
+                redirect_file,
+                redirect_err_file,
             ),
         }
     }

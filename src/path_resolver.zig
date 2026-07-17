@@ -41,8 +41,9 @@ pub fn executeProgram(
     args: [][]const u8,
     io: anytype,
     path_env: []const u8,
-    stdout: anytype,
+    stderr: anytype,
     redirect_file: ?std.Io.File,
+    redirect_err_file: ?std.Io.File,
 ) !void {
     const program_path = try findExecutable(allocator, io, path_env, command);
 
@@ -53,7 +54,12 @@ pub fn executeProgram(
         try argv.append(allocator, command);
         try argv.appendSlice(allocator, args);
 
-        const spawn_options: std.process.SpawnOptions.StdIo = if (redirect_file) |f|
+        const stdout_option: std.process.SpawnOptions.StdIo = if (redirect_file) |f|
+            .{ .file = f }
+        else
+            .inherit;
+
+        const stderr_option: std.process.SpawnOptions.StdIo = if (redirect_err_file) |f|
             .{ .file = f }
         else
             .inherit;
@@ -62,12 +68,13 @@ pub fn executeProgram(
             io,
             .{
                 .argv = argv.items,
-                .stdout = spawn_options,
+                .stdout = stdout_option,
+                .stderr = stderr_option,
             },
         );
         _ = try child_proc.wait(io);
     } else {
-        try stdout.print("{s}: command not found\n", .{command});
+        try stderr.print("{s}: command not found\n", .{command});
     }
 
     // return null;
