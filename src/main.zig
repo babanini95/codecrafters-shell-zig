@@ -52,15 +52,17 @@ pub fn main(init: std.process.Init) !void {
         }
 
         if (stdout_redirect) |r| {
-            const file = try std.Io.File.cwd().createFile(init.io, r.target, .{
-                .truncate = r.kind == .out, // .out overwrites, .append doesn't
+            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+                .truncate = r.kind == .out,
             });
 
+            file_writer_storage = file.writer(init.io, &file_buffer);
+
             if (r.kind == .append) {
-                try file.seekFromEnd(init.io, 0); // move to end before writing
+                try file_writer_storage.?.seekTo(try file.length(init.io));
+                // try file.writer(init.io, 0); // move to end before writing
             }
 
-            file_writer_storage = file.writer(init.io, &file_buffer);
             out = &file_writer_storage.?.interface;
         }
         defer if (file_writer_storage) |*fw| fw.file.close(init.io);

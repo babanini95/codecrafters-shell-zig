@@ -16,7 +16,7 @@ pub fn handleType(
     const cmd_arg = Commands.fromString(arg[0]) orelse .invalid;
 
     if (cmd_arg != .invalid) {
-        try stdout.interface.print("{s} is a shell builtin\n", .{arg[0]});
+        try stdout.print("{s} is a shell builtin\n", .{arg[0]});
         return;
     }
 
@@ -30,15 +30,15 @@ pub fn handleType(
         path_env,
         arg[0],
     )) |filepath| {
-        try stdout.interface.print("{s} is {s}\n", .{ arg[0], filepath });
+        try stdout.print("{s} is {s}\n", .{ arg[0], filepath });
     } else {
-        try stdout.interface.print("{s}: not found\n", .{arg[0]});
+        try stdout.print("{s}: not found\n", .{arg[0]});
     }
 }
 
 pub fn handleEcho(stdout: anytype, args: [][]const u8, allocator: std.mem.Allocator) !void {
     const str = try std.mem.join(allocator, " ", args);
-    try stdout.interface.print("{s}\n", .{str});
+    try stdout.print("{s}\n", .{str});
 }
 
 pub fn handleInvalid(
@@ -60,9 +60,9 @@ pub fn handlePwd(
     var buffer: [std.fs.max_path_bytes]u8 = undefined;
 
     if (cwd.realPathFile(io, ".", &buffer)) |len| {
-        try stdout.interface.print("{s}\n", .{buffer[0..len]});
+        try stdout.print("{s}\n", .{buffer[0..len]});
     } else |err| {
-        try stdout.interface.print("Error: {any}\n", .{err});
+        try stdout.print("Error: {any}\n", .{err});
     }
 }
 
@@ -78,7 +78,7 @@ pub fn handleCd(
 
     const dir_path: []const u8 = if (std.mem.eql(u8, path, "~"))
         env.get("HOME") orelse env.get("USERPROFILE") orelse {
-            try stdout.interface.print("cd: HOME not set\n", .{});
+            try stdout.print("cd: HOME not set\n", .{});
             return;
         }
     else
@@ -90,11 +90,11 @@ pub fn handleCd(
         std.Io.Dir.cwd().openDir(io, dir_path, .{});
 
     var dir = open_result catch {
-        try stdout.interface.print("cd: {s}: No such file or directory\n", .{dir_path});
+        try stdout.print("cd: {s}: No such file or directory\n", .{dir_path});
         return;
     };
     defer dir.close(io);
 
     std.process.setCurrentDir(io, dir) catch
-        try stdout.interface.print("cd: {s}: No such file or directory\n", .{dir_path});
+        try stdout.print("cd: {s}: No such file or directory\n", .{dir_path});
 }
