@@ -42,6 +42,7 @@ pub fn executeProgram(
     io: anytype,
     path_env: []const u8,
     stdout: anytype,
+    redirect_file: ?std.Io.File,
 ) !void {
     const program_path = try findExecutable(allocator, io, path_env, command);
 
@@ -52,9 +53,17 @@ pub fn executeProgram(
         try argv.append(allocator, command);
         try argv.appendSlice(allocator, args);
 
+        const spawn_options: std.process.SpawnOptions.StdIo = if (redirect_file) |f|
+            .{ .file = f }
+        else
+            .inherit;
+
         var child_proc = try std.process.spawn(
             io,
-            .{ .argv = argv.items },
+            .{
+                .argv = argv.items,
+                .stdout = spawn_options,
+            },
         );
         _ = try child_proc.wait(io);
     } else {

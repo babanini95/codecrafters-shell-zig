@@ -51,15 +51,18 @@ pub fn main(init: std.process.Init) !void {
             if (r.fd == 1) stdout_redirect = r; // last one wins if multiple
         }
 
+        var file: ?std.Io.File = null;
+
         if (stdout_redirect) |r| {
-            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+            file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
                 .truncate = r.kind == .out,
+                .read = r.kind == .append,
             });
 
-            file_writer_storage = file.writer(init.io, &file_buffer);
+            file_writer_storage = file.?.writer(init.io, &file_buffer);
 
             if (r.kind == .append) {
-                try file_writer_storage.?.seekTo(try file.length(init.io));
+                try file_writer_storage.?.seekTo(try file.?.length(init.io));
             }
 
             out = &file_writer_storage.?.interface;
@@ -82,6 +85,7 @@ pub fn main(init: std.process.Init) !void {
                 init.io,
                 out,
                 allocator,
+                file,
             ),
         }
     }

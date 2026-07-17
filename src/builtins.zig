@@ -48,8 +48,17 @@ pub fn handleInvalid(
     io: anytype,
     stdout: anytype,
     allocator: std.mem.Allocator,
+    redirect_file: ?std.Io.File,
 ) !void {
-    try path_resolver.executeProgram(allocator, cmd, args, io, path, stdout);
+    try path_resolver.executeProgram(
+        allocator,
+        cmd,
+        args,
+        io,
+        path,
+        stdout,
+        redirect_file,
+    );
 }
 
 pub fn handlePwd(
