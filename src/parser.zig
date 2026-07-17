@@ -42,3 +42,95 @@ pub fn parse(allocator: std.mem.Allocator, tokens: []const Token) !ParsedCommand
         .redirects = try redirects.toOwnedSlice(allocator),
     };
 }
+
+const testing = std.testing;
+
+test "parse: plain words, no redirects" {
+    const allocator = testing.allocator;
+    const tokens = [_]Token{
+        .{ .word = "echo" },
+        .{ .word = "hi" },
+    };
+    const parsed = try parse(allocator, &tokens);
+    defer allocator.free(parsed.argv);
+    defer allocator.free(parsed.redirects);
+
+    try testing.expectEqual(@as(usize, 2), parsed.argv.len);
+    try testing.expectEqualStrings("echo", parsed.argv[0]);
+    try testing.expectEqualStrings("hi", parsed.argv[1]);
+    try testing.expectEqual(@as(usize, 0), parsed.redirects.len);
+}
+
+test "parse: redirect_out captured, target word excluded from argv" {
+    const allocator = testing.allocator;
+    const tokens = [_]Token{
+        .{ .word = "echo" },
+        .{ .word = "hi" },
+        .{ .redirect_out = 1 },
+        .{ .word = "out.txt" },
+    };
+    const parsed = try parse(allocator, &tokens);
+    defer allocator.free(parsed.argv);
+    defer allocator.free(parsed.redirects);
+
+    try testing.expectEqual(@as(usize, 2), parsed.argv.len); // "out.txt" NOT in argv
+    try testing.expectEqual(@as(usize, 1), parsed.redirects.len);
+    try testing.expectEqual(RedirectKind.out, parsed.redirects[0].kind);
+    try testing.expectEqual(@as(u8, 1), parsed.redirects[0].fd);
+    try testing.expectEqualStrings("out.txt", parsed.redirects[0].target);
+}
+
+test "parse: redirect_append captured correctly" {
+    const allocator = testing.allocator;
+    const tokens = [_]Token{
+        .{ .word = "echo" },
+        .{ .redirect_append = 1 },
+        .{ .word = "log.txt" },
+    };
+    const parsed = try parse(allocator, &tokens);
+    defer allocator.free(parsed.argv);
+    defer allocator.free(parsed.redirects);
+
+    try testing.expectEqual(RedirectKind.append, parsed.redirects[0].kind);
+    try testing.expectEqualStrings("log.txt", parsed.redirects[0].target);
+}
+
+test "parse: last redirect for same fd wins" {
+    const allocator = testing.allocator;
+    const tokens = [_]Token{
+        .{ .word = "echo" },
+        .{ .redirect_out = 1 },
+        .{ .word = "a.txt" },
+        .{ .redirect_out = 1 },
+        .{ .word = "b.txt" },
+    };
+    const parsed = try parse(allocator, &tokens);
+    defer allocator.free(parsed.argv);
+    defer allocator.free(parsed.redirects);
+
+    // parse() itself just collects both; "last wins" logic lives in main's loop.
+    // So test that BOTH show up here, in order:
+    try testing.expectEqual(@as(usize, 2), parsed.redirects.len);
+    try testing.expectEqualStrings("a.txt", parsed.redirects[0].target);
+    try testing.expectEqualStrings("b.txt", parsed.redirects[1].target);
+}
+
+test "parse: redirect with no target word errors" {
+    const allocator = testing.allocator;
+    const tokens = [_]Token{
+        .{ .word = "echo" },
+        .{ .redirect_out = 1 },
+    };
+    try testing.expectError(error.MissingRedirectTarget, parse(allocator, &tokens));
+}
+
+test "parse: empty token list gives empty argv" {
+    const allocator = testing.allocator;
+    const tokens = [_]Token{};
+    const parsed = try parse(allocator, &tokens);
+    defer allocator.free(parsed.argv);
+    defer allocator.free(parsed.redirects);
+
+    try testing.expectEqual(@as(usize, 0), parsed.argv.len);
+    try testing.expectEqual(@as(usize, 0), parsed.redirects.len);
+}

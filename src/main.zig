@@ -64,7 +64,10 @@ pub fn main(init: std.process.Init) !void {
 
             out = &file_writer_storage.?.interface;
         }
-        defer if (file_writer_storage) |*fw| fw.file.close(init.io);
+        defer if (file_writer_storage) |*fw| {
+            fw.interface.flush() catch {};
+            fw.file.close(init.io);
+        };
 
         switch (command) {
             .exit => break,
