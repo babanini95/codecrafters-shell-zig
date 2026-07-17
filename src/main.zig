@@ -60,7 +60,6 @@ pub fn main(init: std.process.Init) !void {
 
             if (r.kind == .append) {
                 try file_writer_storage.?.seekTo(try file.length(init.io));
-                // try file.writer(init.io, 0); // move to end before writing
             }
 
             out = &file_writer_storage.?.interface;
@@ -78,7 +77,7 @@ pub fn main(init: std.process.Init) !void {
                 args,
                 env.get("PATH") orelse "",
                 init.io,
-                &stdout,
+                out,
                 allocator,
             ),
         }
