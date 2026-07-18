@@ -66,7 +66,8 @@ pub fn main(init: std.process.Init) !void {
             file_writer_storage = file.writer(init.io, &file_buffer);
 
             if (r.kind == .append) {
-                try file_writer_storage.?.seekTo(try file.length(init.io));
+                const stat = try file.stat(init.io);
+                try file_writer_storage.?.seekTo(stat.size);
             }
 
             out = &file_writer_storage.?.interface;
@@ -79,7 +80,8 @@ pub fn main(init: std.process.Init) !void {
             });
             err_file_writer_storage = file.writer(init.io, &err_file_buffer);
             if (r.kind == .append) {
-                try err_file_writer_storage.?.seekTo(try file.length(init.io));
+                const stat = try file.stat(init.io);
+                try err_file_writer_storage.?.seekTo(stat.size);
             }
             out_err = &err_file_writer_storage.?.interface;
         }
