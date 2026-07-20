@@ -46,7 +46,7 @@ pub fn main(init: std.process.Init) !void {
         var file_writer_storage: ?std.Io.File.Writer = null;
         var out: *std.Io.Writer = &stdout.interface; // default target
 
-        var err_file_buffer: [4069]u8 = undefined;
+        var err_file_buffer: [4096]u8 = undefined;
         var err_file_writer_storage: ?std.Io.File.Writer = null;
         var out_err: *std.Io.Writer = &stderr.interface;
 
@@ -66,8 +66,8 @@ pub fn main(init: std.process.Init) !void {
             file_writer_storage = file.writer(init.io, &file_buffer);
 
             if (r.kind == .append) {
-                const stat = try file.stat(init.io);
-                try file_writer_storage.?.seekTo(stat.size);
+                // const stat = try file.stat(init.io);
+                try file_writer_storage.?.seekTo(try file.length(init.io));
             }
 
             out = &file_writer_storage.?.interface;
@@ -80,8 +80,8 @@ pub fn main(init: std.process.Init) !void {
             });
             err_file_writer_storage = file.writer(init.io, &err_file_buffer);
             if (r.kind == .append) {
-                const stat = try file.stat(init.io);
-                try err_file_writer_storage.?.seekTo(stat.size);
+                // const stat = try file.stat(init.io);
+                try err_file_writer_storage.?.seekTo(try file.length(init.io));
             }
             out_err = &err_file_writer_storage.?.interface;
         }
@@ -94,16 +94,6 @@ pub fn main(init: std.process.Init) !void {
             fw.file.close(init.io);
         };
 
-        const redirect_file = if (file_writer_storage) |*fw|
-            fw.file
-        else
-            null;
-
-        const redirect_err_file = if (err_file_writer_storage) |*fw|
-            fw.file
-        else
-            null;
-
         switch (command) {
             .exit => break,
             .echo => try builtins.handleEcho(out, args, allocator),
@@ -115,10 +105,9 @@ pub fn main(init: std.process.Init) !void {
                 args,
                 env.get("PATH") orelse "",
                 init.io,
-                out_err,
                 allocator,
-                redirect_file,
-                redirect_err_file,
+                out,
+                out_err,
             ),
         }
     }

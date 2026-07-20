@@ -47,10 +47,9 @@ pub fn handleInvalid(
     args: [][]const u8,
     path: []const u8,
     io: anytype,
-    stderr: anytype,
     allocator: std.mem.Allocator,
-    redirect_file: ?std.Io.File,
-    redirect_err_file: ?std.Io.File,
+    out: *std.Io.Writer,
+    out_err: *std.Io.Writer,
 ) !void {
     try path_resolver.executeProgram(
         allocator,
@@ -58,9 +57,8 @@ pub fn handleInvalid(
         args,
         io,
         path,
-        stderr,
-        redirect_file,
-        redirect_err_file,
+        out,
+        out_err,
     );
 }
 

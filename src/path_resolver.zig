@@ -41,9 +41,8 @@ pub fn executeProgram(
     args: [][]const u8,
     io: anytype,
     path_env: []const u8,
-    stderr: anytype,
-    redirect_file: ?std.Io.File,
-    redirect_err_file: ?std.Io.File,
+    out: *std.Io.Writer,
+    out_err: *std.Io.Writer,
 ) !void {
     const program_path = try findExecutable(allocator, io, path_env, command);
 
@@ -54,27 +53,47 @@ pub fn executeProgram(
         try argv.append(allocator, command);
         try argv.appendSlice(allocator, args);
 
-        const stdout_option: std.process.SpawnOptions.StdIo = if (redirect_file) |f|
-            .{ .file = f }
-        else
-            .inherit;
-
-        const stderr_option: std.process.SpawnOptions.StdIo = if (redirect_err_file) |f|
-            .{ .file = f }
-        else
-            .inherit;
-
         var child_proc = try std.process.spawn(
             io,
             .{
                 .argv = argv.items,
-                .stdout = stdout_option,
-                .stderr = stderr_option,
+                .stdout = .pipe,
+                .stderr = .pipe,
             },
         );
+
+        if (child_proc.stdout) |*child_stdout| {
+            var read_buf: [4096]u8 = undefined;
+            var reader = child_stdout.readerStreaming(io, &read_buf);
+
+            while (true) {
+                const bytes_read = reader.interface.readSliceShort(&read_buf) catch |err| {
+                    if (err == error.EndOfStream) break;
+                    return err;
+                };
+                if (bytes_read == 0) break;
+                try out.writeAll(read_buf[0..bytes_read]);
+            }
+        }
+
+        // Read stderr stream from child and forward it to our target error writer ('out_err')
+        if (child_proc.stderr) |*child_stderr| {
+            var read_buf: [4096]u8 = undefined;
+            var reader = child_stderr.readerStreaming(io, &read_buf);
+
+            while (true) {
+                const bytes_read = reader.interface.readSliceShort(&read_buf) catch |err| {
+                    if (err == error.EndOfStream) break;
+                    return err;
+                };
+                if (bytes_read == 0) break;
+                try out_err.writeAll(read_buf[0..bytes_read]);
+            }
+        }
+
         _ = try child_proc.wait(io);
     } else {
-        try stderr.print("{s}: command not found\n", .{command});
+        try out_err.print("{s}: command not found\n", .{command});
     }
 
     // return null;

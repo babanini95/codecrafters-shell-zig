@@ -1,2 +1,0 @@
-11.0.0
-ion go1.24.2 windows/amd64
