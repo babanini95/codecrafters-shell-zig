@@ -16,7 +16,7 @@ export fn completionHook(buf: [*c]const u8, lc: [*c]c.linenoiseCompletions) void
     for (std.enums.values(Commands)) |cmd| {
         const cmd_str = @tagName(cmd);
         if (std.mem.startsWith(u8, cmd_str, input)) {
-            c.linenoiseAddCompletion(lc, cmd_str);
+            c.linenoiseAddCompletion(lc, cmd_str ** " ");
         }
     }
 }
