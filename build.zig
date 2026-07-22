@@ -7,7 +7,16 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = b.graph.host,
+            .link_libc = true,
         }),
+    });
+
+    exe.root_module.addIncludePath(b.path("src/linenoise"));
+    exe.root_module.addCSourceFile(.{
+        .file = b.path("src/linenoise/linenoise.c"),
+        .flags = &[_][]const u8{
+            "-Os",
+        },
     });
 
     // This declares intent for the executable to be installed into the

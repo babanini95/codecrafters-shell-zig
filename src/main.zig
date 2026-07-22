@@ -4,23 +4,40 @@ const builtins = @import("builtins.zig");
 const path_resolver = @import("path_resolver.zig");
 const input_handler = @import("input_handler.zig");
 const parser = @import("parser.zig");
+const c = @cImport({
+    @cInclude("linenoise.h");
+});
 
 const Commands = @import("command.zig").Commands;
 
+export fn completionHook(buf: [*c]const u8, lc: [*c]c.linenoiseCompletions) void {
+    const input = std.mem.span(buf);
+
+    for (std.enums.values(Commands)) |cmd| {
+        const cmd_str = @tagName(cmd);
+        if (std.mem.startsWith(u8, cmd_str, input)) {
+            c.linenoiseAddCompletion(lc, cmd_str);
+        }
+    }
+}
+
 pub fn main(init: std.process.Init) !void {
+    c.linenoiseSetCompletionCallback(completionHook);
     var stderr = std.Io.File.stderr().writer(init.io, &.{});
     var stdout = std.Io.File.stdout().writer(init.io, &.{});
-    var stdin_buffer: [4096]u8 = undefined;
-    var stdin = std.Io.File.stdin().readerStreaming(init.io, &stdin_buffer);
 
     const env = init.environ_map;
 
     try stdout.interface.print("", .{});
 
     while (true) {
-        try stdout.interface.print("$ ", .{});
+        const raw_line = c.linenoise("$ ");
+        if (raw_line == null) break;
+        defer c.linenoiseFree(raw_line);
 
-        const line = try stdin.interface.takeDelimiter('\n') orelse continue;
+        const line = std.mem.span(raw_line);
+
+        if (line.len == 0) continue;
         const trimmed = if (builtin.os.tag == .windows)
             std.mem.trim(u8, line, "\r")
         else

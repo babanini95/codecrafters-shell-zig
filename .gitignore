@@ -10,7 +10,7 @@ bin/
 
 # Ignore any .o or .h files generated during build
 *.o
-*.h
+# *.h
 
 # Ignore OS and editor specific files
 **/.DS_Store
