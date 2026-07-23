@@ -46,10 +46,10 @@ pub fn main(init: std.process.Init) !void {
         const line = std.mem.span(raw_line);
 
         if (line.len == 0) continue;
-        const trimmed = std.mem.trim(u8, line, "\r");
-        // const trimmed = if (builtin.os.tag == .windows)
-        // else
-        //     line;
+        const trimmed = if (builtin.os.tag == .windows)
+            std.mem.trim(u8, line, "\r")
+        else
+            line;
 
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
@@ -83,10 +83,13 @@ pub fn main(init: std.process.Init) !void {
         }
 
         if (stdout_redirect) |r| {
-            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+            const file = std.Io.Dir.cwd().createFile(init.io, r.target, .{
                 .truncate = r.kind == .out,
                 .read = r.kind == .append,
-            });
+            }) catch {
+                try out_err.print("shell: {s}: Unable to create file\n", .{r.target});
+                continue;
+            };
 
             file_writer_storage = file.writer(init.io, &file_buffer);
 
@@ -99,10 +102,13 @@ pub fn main(init: std.process.Init) !void {
         }
 
         if (stderr_redirect) |r| {
-            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+            const file = std.Io.Dir.cwd().createFile(init.io, r.target, .{
                 .truncate = r.kind == .out,
                 .read = r.kind == .append,
-            });
+            }) catch {
+                try out_err.print("shell: {s}: Unable to create file\n", .{r.target});
+                continue;
+            };
             err_file_writer_storage = file.writer(init.io, &err_file_buffer);
             if (r.kind == .append) {
                 // const stat = try file.stat(init.io);
