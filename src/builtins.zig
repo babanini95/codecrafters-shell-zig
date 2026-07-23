@@ -51,6 +51,9 @@ pub fn handleInvalid(
     out: *std.Io.Writer,
     out_err: *std.Io.Writer,
 ) !void {
+    for (args) |a| {
+        std.debug.print("arg: ", .{a});
+    }
     try path_resolver.executeProgram(
         allocator,
         cmd,
