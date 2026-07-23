@@ -52,7 +52,7 @@ pub fn handleInvalid(
     out_err: *std.Io.Writer,
 ) !void {
     for (args) |a| {
-        std.debug.print("arg: {s}", .{a});
+        out.print("arg: {s}", .{a});
     }
     try path_resolver.executeProgram(
         allocator,
