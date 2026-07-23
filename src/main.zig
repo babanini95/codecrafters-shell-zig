@@ -46,10 +46,10 @@ pub fn main(init: std.process.Init) !void {
         const line = std.mem.span(raw_line);
 
         if (line.len == 0) continue;
-        const trimmed = if (builtin.os.tag == .windows)
-            std.mem.trim(u8, line, "\r")
-        else
-            line;
+        const trimmed = std.mem.trim(u8, line, "\r");
+        // const trimmed = if (builtin.os.tag == .windows)
+        // else
+        //     line;
 
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
