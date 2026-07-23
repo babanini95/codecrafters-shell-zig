@@ -1,1 +1,0 @@
-ls: cannot access 'asdadsd': No such file or directory
