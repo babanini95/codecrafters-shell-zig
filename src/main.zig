@@ -83,10 +83,13 @@ pub fn main(init: std.process.Init) !void {
         }
 
         if (stdout_redirect) |r| {
-            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+            const file = std.Io.Dir.cwd().createFile(init.io, r.target, .{
                 .truncate = r.kind == .out,
                 .read = r.kind == .append,
-            });
+            }) catch {
+                try out.print("{s}: {s}: No such file or directory\n", .{ command_str, r.target });
+                continue;
+            };
 
             file_writer_storage = file.writer(init.io, &file_buffer);
 
@@ -99,10 +102,13 @@ pub fn main(init: std.process.Init) !void {
         }
 
         if (stderr_redirect) |r| {
-            const file = try std.Io.Dir.cwd().createFile(init.io, r.target, .{
+            const file = std.Io.Dir.cwd().createFile(init.io, r.target, .{
                 .truncate = r.kind == .out,
                 .read = r.kind == .append,
-            });
+            }) catch {
+                try out_err.print("{s}: {s}: No such file or directory\n", .{ command_str, r.target });
+                continue;
+            };
             err_file_writer_storage = file.writer(init.io, &err_file_buffer);
             if (r.kind == .append) {
                 // const stat = try file.stat(init.io);
